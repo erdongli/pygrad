@@ -10,8 +10,9 @@ class Op(StrEnum):
 
 
 class Scalar:
-    def __init__(self, data: float):
+    def __init__(self, data: float, op: Op | None = None):
         self.data = data
+        self.op = op
 
     def __repr__(self) -> str:
         return f"{self.data}"
@@ -19,24 +20,24 @@ class Scalar:
     def __add__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Scalar(self.data + other.data)
+        return Scalar(self.data + other.data, op=Op.ADD)
 
     def __sub__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Scalar(self.data - other.data)
+        return Scalar(self.data - other.data, op=Op.SUB)
 
     def __mul__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Scalar(self.data * other.data)
+        return Scalar(self.data * other.data, op=Op.MUL)
 
     def __truediv__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Scalar(self.data / other.data)
+        return Scalar(self.data / other.data, op=Op.DIV)
 
     def __pow__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Scalar(self.data**other.data)
+        return Scalar(self.data**other.data, op=Op.POW)
