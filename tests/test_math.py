@@ -28,7 +28,9 @@ def test_op_enum_strenum_auto_values_are_lowercase_names() -> None:
 
 
 def test_scalar_defaults_op_to_none() -> None:
-    assert Scalar(1.0).op is None
+    actual = Scalar(1.0)
+    assert actual._op is None
+    assert actual._inputs == ()
 
 
 def test_repr_is_data() -> None:
@@ -37,33 +39,48 @@ def test_repr_is_data() -> None:
 
 
 def test_add() -> None:
-    actual = Scalar(2.0) + Scalar(3.5)
+    lhs = Scalar(2.0)
+    rhs = Scalar(3.5)
+    actual = lhs + rhs
     assert actual.data == 5.5
-    assert actual.op == Op.ADD
+    assert actual._op == Op.ADD
+    assert actual._inputs == (lhs, rhs)
 
 
 def test_sub() -> None:
-    actual = Scalar(10.0) - Scalar(4.25)
+    lhs = Scalar(10.0)
+    rhs = Scalar(4.25)
+    actual = lhs - rhs
     assert actual.data == 5.75
-    assert actual.op == Op.SUB
+    assert actual._op == Op.SUB
+    assert actual._inputs == (lhs, rhs)
 
 
 def test_mul() -> None:
-    actual = Scalar(3.0) * Scalar(2.0)
+    lhs = Scalar(3.0)
+    rhs = Scalar(2.0)
+    actual = lhs * rhs
     assert actual.data == 6.0
-    assert actual.op == Op.MUL
+    assert actual._op == Op.MUL
+    assert actual._inputs == (lhs, rhs)
 
 
 def test_truediv() -> None:
-    actual = Scalar(9.0) / Scalar(3.0)
+    lhs = Scalar(9.0)
+    rhs = Scalar(3.0)
+    actual = lhs / rhs
     assert actual.data == 3.0
-    assert actual.op == Op.DIV
+    assert actual._op == Op.DIV
+    assert actual._inputs == (lhs, rhs)
 
 
 def test_pow() -> None:
-    actual = Scalar(2.0) ** Scalar(3.0)
+    lhs = Scalar(2.0)
+    rhs = Scalar(3.0)
+    actual = lhs**rhs
     assert actual.data == 8.0
-    assert actual.op == Op.POW
+    assert actual._op == Op.POW
+    assert actual._inputs == (lhs, rhs)
 
 
 @pytest.mark.parametrize(

@@ -10,9 +10,12 @@ class Op(StrEnum):
 
 
 class Scalar:
-    def __init__(self, data: float, op: Op | None = None):
+    def __init__(
+        self, data: float, op: Op | None = None, inputs: tuple["Scalar", ...] = ()
+    ):
         self.data = data
-        self.op = op
+        self._op = op
+        self._inputs = inputs
 
     def __repr__(self) -> str:
         return f"{self.data}"
@@ -20,24 +23,24 @@ class Scalar:
     def __add__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Scalar(self.data + other.data, op=Op.ADD)
+        return Scalar(self.data + other.data, op=Op.ADD, inputs=(self, other))
 
     def __sub__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Scalar(self.data - other.data, op=Op.SUB)
+        return Scalar(self.data - other.data, op=Op.SUB, inputs=(self, other))
 
     def __mul__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Scalar(self.data * other.data, op=Op.MUL)
+        return Scalar(self.data * other.data, op=Op.MUL, inputs=(self, other))
 
     def __truediv__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Scalar(self.data / other.data, op=Op.DIV)
+        return Scalar(self.data / other.data, op=Op.DIV, inputs=(self, other))
 
     def __pow__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Scalar(self.data**other.data, op=Op.POW)
+        return Scalar(self.data**other.data, op=Op.POW, inputs=(self, other))
