@@ -1,6 +1,6 @@
 import math
 from abc import ABC, abstractmethod
-from typing import ClassVar, override
+from typing import ClassVar, Final, override
 
 
 class Op(ABC):
@@ -22,13 +22,23 @@ class Op(ABC):
 
 class BinaryOp(Op):
     def __init__(self, left: "Scalar", right: "Scalar") -> None:
-        self.left = left
-        self.right = right
+        self.left: Final = left
+        self.right: Final = right
 
     @property
     @override
     def operands(self) -> tuple["Scalar", ...]:
         return (self.left, self.right)
+
+
+class UnaryOp(Op):
+    def __init__(self, operand: "Scalar") -> None:
+        self.operand: Final = operand
+
+    @property
+    @override
+    def operands(self) -> tuple["Scalar", ...]:
+        return (self.operand,)
 
 
 class Add(BinaryOp):
@@ -103,12 +113,28 @@ class Pow(BinaryOp):
         self.right.grad += out.data * math.log(self.left.data) * out.grad
 
 
+class Tanh(UnaryOp):
+    synbol: ClassVar[str] = "tanh"
+
+    @override
+    def forward(self) -> "Scalar":
+        return Scalar(
+            (math.exp(2 * self.operand.data) - 1)
+            / (math.exp(2 * self.operand.data) + 1),
+            op=self,
+        )
+
+    @override
+    def backward(self, out: "Scalar") -> None:
+        self.operand.grad += (1 - (self.forward().data ** 2)) * out.grad
+
+
 class Scalar:
     __slots__ = ("data", "op", "grad")
 
     def __init__(self, data: float, op: Op | None = None) -> None:
         self.data = data
-        self.op = op
+        self.op: Final = op
         self.grad = 0.0
 
     def __repr__(self) -> str:
