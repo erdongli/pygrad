@@ -1,98 +1,118 @@
+import operator
+from collections.abc import Callable
+from typing import Any
+
 import pytest
 
-from pygrad.math import Op, Scalar
-
-
-def test_op_enum_values_are_str() -> None:
-    assert isinstance(Op.ADD.value, str)
-    assert isinstance(Op.SUB.value, str)
-    assert isinstance(Op.MUL.value, str)
-    assert isinstance(Op.DIV.value, str)
-    assert isinstance(Op.POW.value, str)
-
-
-def test_op_enum_members_exist() -> None:
-    assert Op.ADD.name == "ADD"
-    assert Op.SUB.name == "SUB"
-    assert Op.MUL.name == "MUL"
-    assert Op.DIV.name == "DIV"
-    assert Op.POW.name == "POW"
-
-
-def test_op_enum_strenum_auto_values_are_lowercase_names() -> None:
-    assert Op.ADD.value == "+"
-    assert Op.SUB.value == "-"
-    assert Op.MUL.value == "*"
-    assert Op.DIV.value == "/"
-    assert Op.POW.value == "**"
-
-
-def test_scalar_defaults_op_to_none() -> None:
-    actual = Scalar(1.0)
-    assert actual.op is None
-    assert actual.inputs == ()
-
-
-def test_repr_is_data() -> None:
-    assert repr(Scalar(2.5)) == "2.5"
-    assert repr(Scalar(-3.0)) == "-3.0"
-
-
-def test_add() -> None:
-    lhs = Scalar(2.0)
-    rhs = Scalar(3.5)
-    actual = lhs + rhs
-    assert actual.data == 5.5
-    assert actual.op == Op.ADD
-    assert actual.inputs == (lhs, rhs)
-
-
-def test_sub() -> None:
-    lhs = Scalar(10.0)
-    rhs = Scalar(4.25)
-    actual = lhs - rhs
-    assert actual.data == 5.75
-    assert actual.op == Op.SUB
-    assert actual.inputs == (lhs, rhs)
-
-
-def test_mul() -> None:
-    lhs = Scalar(3.0)
-    rhs = Scalar(2.0)
-    actual = lhs * rhs
-    assert actual.data == 6.0
-    assert actual.op == Op.MUL
-    assert actual.inputs == (lhs, rhs)
-
-
-def test_truediv() -> None:
-    lhs = Scalar(9.0)
-    rhs = Scalar(3.0)
-    actual = lhs / rhs
-    assert actual.data == 3.0
-    assert actual.op == Op.DIV
-    assert actual.inputs == (lhs, rhs)
-
-
-def test_pow() -> None:
-    lhs = Scalar(2.0)
-    rhs = Scalar(3.0)
-    actual = lhs**rhs
-    assert actual.data == 8.0
-    assert actual.op == Op.POW
-    assert actual.inputs == (lhs, rhs)
+from pygrad.math import Add, BinaryOp, Div, Mul, Pow, Scalar, Sub
 
 
 @pytest.mark.parametrize(
-    "operation",
+    ("op_cls", "left_data", "right_data", "expected_data"),
     [
-        lambda x: x + 2.0,
-        lambda x: x - 2.0,
-        lambda x: x * 2.0,
-        lambda x: x / 2.0,
-        lambda x: x**2.0,
+        (Add, 2.0, 3.5, 5.5),
+        (Sub, 10.0, 4.25, 5.75),
+        (Mul, 3.0, 2.0, 6.0),
+        (Div, 9.0, 3.0, 3.0),
+        (Pow, 2.0, 3.0, 8.0),
     ],
+    ids=["add", "sub", "mul", "div", "pow"],
 )
-def test_operators_with_non_scalar_rhs_raise_type_error(operation) -> None:
+def test_binary_op_forward_returns_expected_scalar(
+    op_cls: type[BinaryOp],
+    left_data: float,
+    right_data: float,
+    expected_data: float,
+) -> None:
+    left = Scalar(left_data)
+    right = Scalar(right_data)
+    op = op_cls(left, right)
+
+    actual = op.forward()
+
+    assert isinstance(actual, Scalar)
+    assert actual.data == pytest.approx(expected_data)
+    assert actual.op is op
+
+
+@pytest.mark.parametrize(
+    ("binary_op", "left_data", "right_data", "op_cls", "expected_data"),
+    [
+        (operator.add, 2.0, 3.5, Add, 5.5),
+        (operator.sub, 10.0, 4.25, Sub, 5.75),
+        (operator.mul, 3.0, 2.0, Mul, 6.0),
+        (operator.truediv, 9.0, 3.0, Div, 3.0),
+        (operator.pow, 2.0, 3.0, Pow, 8.0),
+    ],
+    ids=["add", "sub", "mul", "truediv", "pow"],
+)
+def test_scalar_binary_dunders_return_expected_scalar(
+    binary_op: Callable[[Scalar, Scalar], Scalar],
+    left_data: float,
+    right_data: float,
+    op_cls: type[BinaryOp],
+    expected_data: float,
+) -> None:
+    left = Scalar(left_data)
+    right = Scalar(right_data)
+
+    actual = binary_op(left, right)
+
+    assert isinstance(actual, Scalar)
+    assert actual.data == pytest.approx(expected_data)
+    assert isinstance(actual.op, op_cls)
+    assert actual.op.left is left
+    assert actual.op.right is right
+
+
+@pytest.mark.parametrize(
+    ("dunder_method", "other"),
+    [
+        (Scalar.__add__, 1),
+        (Scalar.__sub__, 1),
+        (Scalar.__mul__, 1),
+        (Scalar.__truediv__, 1),
+        (Scalar.__pow__, 1),
+    ],
+    ids=["add", "sub", "mul", "truediv", "pow"],
+)
+def test_scalar_binary_dunders_return_notimplemented_for_non_scalar(
+    dunder_method: Callable[[Scalar, Any], object],
+    other: Any,
+) -> None:
+    value = Scalar(2.0)
+
+    actual = dunder_method(value, other)
+
+    assert actual is NotImplemented
+
+
+@pytest.mark.parametrize(
+    "binary_op",
+    [operator.add, operator.sub, operator.mul, operator.truediv, operator.pow],
+    ids=["add", "sub", "mul", "truediv", "pow"],
+)
+def test_scalar_binary_operators_raise_type_error_for_non_scalar(
+    binary_op: Callable[[Scalar, Any], Any],
+) -> None:
     with pytest.raises(TypeError):
-        operation(Scalar(1.0))
+        binary_op(Scalar(2.0), 1)
+
+
+def test_scalar_truediv_by_zero_raises_zero_division_error() -> None:
+    with pytest.raises(ZeroDivisionError):
+        _ = Scalar(1.0) / Scalar(0.0)
+
+
+def test_scalar_repr_returns_data_string() -> None:
+    assert repr(Scalar(3.25)) == "3.25"
+
+
+@pytest.mark.parametrize(
+    "op_cls", [Add, Sub, Mul, Div, Pow], ids=["add", "sub", "mul", "div", "pow"]
+)
+def test_binary_op_backward_raises_not_implemented(op_cls: type[BinaryOp]) -> None:
+    op = op_cls(Scalar(2.0), Scalar(3.0))
+
+    with pytest.raises(NotImplementedError):
+        op.backward(Scalar(1.0))

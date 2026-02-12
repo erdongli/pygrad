@@ -16,14 +16,16 @@ def render(root: Scalar, filename: str) -> None:
         node_names.add(node_name)
 
         dot.node(node_name, label=str(node))
+
         if not node.op:
             continue
+        op = node.op
 
-        op_name = node_name + node.op
-        dot.node(op_name, label=node.op)
+        op_name = node_name + op.symbol
+        dot.node(op_name, label=op.symbol)
         dot.edge(op_name, node_name)
-        for input in node.inputs:
-            queue.append(input)
-            dot.edge(str(id(input)), op_name)
+        for operand in op.operands:
+            queue.append(operand)
+            dot.edge(str(id(operand)), op_name)
 
     dot.render(filename, cleanup=True)
