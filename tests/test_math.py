@@ -1,3 +1,4 @@
+import math
 import operator
 from collections.abc import Callable
 from typing import Any
@@ -109,10 +110,52 @@ def test_scalar_repr_returns_data_string() -> None:
 
 
 @pytest.mark.parametrize(
-    "op_cls", [Add, Sub, Mul, Div, Pow], ids=["add", "sub", "mul", "div", "pow"]
+    ("op_cls", "left_data", "right_data", "out_grad", "left_delta", "right_delta"),
+    [
+        (Add, 2.0, 3.5, 2.5, 2.5, 2.5),
+        (Sub, 10.0, 4.25, 1.5, 1.5, -1.5),
+        (Mul, 3.0, 2.0, 2.0, 4.0, 6.0),
+        (Div, 9.0, 3.0, 1.5, 0.5, -1.5),
+        (
+            Pow,
+            2.0,
+            3.0,
+            0.5,
+            3.0 * (2.0**2.0) * 0.5,
+            (2.0**3.0) * math.log(2.0) * 0.5,
+        ),
+    ],
+    ids=["add", "sub", "mul", "div", "pow"],
 )
-def test_binary_op_backward_raises_not_implemented(op_cls: type[BinaryOp]) -> None:
-    op = op_cls(Scalar(2.0), Scalar(3.0))
+def test_binary_op_backward_accumulates_expected_gradients(
+    op_cls: type[BinaryOp],
+    left_data: float,
+    right_data: float,
+    out_grad: float,
+    left_delta: float,
+    right_delta: float,
+) -> None:
+    left = Scalar(left_data)
+    right = Scalar(right_data)
+    op = op_cls(left, right)
+    out = op.forward()
 
-    with pytest.raises(NotImplementedError):
-        op.backward(Scalar(1.0))
+    left.grad = 1.25
+    right.grad = -0.75
+    out.grad = out_grad
+
+    op.backward(out)
+
+    assert left.grad == pytest.approx(1.25 + left_delta)
+    assert right.grad == pytest.approx(-0.75 + right_delta)
+
+
+def test_pow_backward_raises_value_error_for_non_positive_base() -> None:
+    left = Scalar(0.0)
+    right = Scalar(2.0)
+    op = Pow(left, right)
+    out = op.forward()
+    out.grad = 1.0
+
+    with pytest.raises(ValueError):
+        op.backward(out)

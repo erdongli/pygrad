@@ -1,3 +1,4 @@
+import math
 from abc import ABC, abstractmethod
 from typing import ClassVar, override
 
@@ -39,7 +40,8 @@ class Add(BinaryOp):
 
     @override
     def backward(self, out: "Scalar") -> None:
-        raise NotImplementedError("Add.backward is not implemented yet.")
+        self.left.grad += 1.0 * out.grad
+        self.right.grad += 1.0 * out.grad
 
 
 class Sub(BinaryOp):
@@ -51,7 +53,8 @@ class Sub(BinaryOp):
 
     @override
     def backward(self, out: "Scalar") -> None:
-        raise NotImplementedError("Sub.backward is not implemented yet.")
+        self.left.grad += 1.0 * out.grad
+        self.right.grad -= 1.0 * out.grad
 
 
 class Mul(BinaryOp):
@@ -63,7 +66,8 @@ class Mul(BinaryOp):
 
     @override
     def backward(self, out: "Scalar") -> None:
-        raise NotImplementedError("Mul.backward is not implemented yet.")
+        self.left.grad += self.right.data * out.grad
+        self.right.grad += self.left.data * out.grad
 
 
 class Div(BinaryOp):
@@ -75,7 +79,8 @@ class Div(BinaryOp):
 
     @override
     def backward(self, out: "Scalar") -> None:
-        raise NotImplementedError("Div.backward is not implemented yet.")
+        self.left.grad += (1.0 / self.right.data) * out.grad
+        self.right.grad += (-self.left.data / (self.right.data**2)) * out.grad
 
 
 class Pow(BinaryOp):
@@ -87,15 +92,24 @@ class Pow(BinaryOp):
 
     @override
     def backward(self, out: "Scalar") -> None:
-        raise NotImplementedError("Pow.backward is not implemented yet.")
+        if self.left.data <= 0.0:
+            raise ValueError(
+                "Pow.backward requires a positive base for exponent gradients."
+            )
+
+        self.left.grad += (
+            self.right.data * (self.left.data ** (self.right.data - 1.0)) * out.grad
+        )
+        self.right.grad += out.data * math.log(self.left.data) * out.grad
 
 
 class Scalar:
-    __slots__ = ("data", "op")
+    __slots__ = ("data", "op", "grad")
 
     def __init__(self, data: float, op: Op | None = None) -> None:
         self.data = data
         self.op = op
+        self.grad = 0.0
 
     def __repr__(self) -> str:
         return f"{self.data}"
