@@ -114,19 +114,50 @@ class Pow(BinaryOp):
 
 
 class Tanh(UnaryOp):
-    synbol: ClassVar[str] = "tanh"
+    symbol: ClassVar[str] = "tanh"
 
     @override
     def forward(self) -> "Scalar":
-        return Scalar(
-            (math.exp(2 * self.operand.data) - 1)
-            / (math.exp(2 * self.operand.data) + 1),
-            op=self,
-        )
+        return Scalar(self._forward(), op=self)
 
     @override
     def backward(self, out: "Scalar") -> None:
-        self.operand.grad += (1 - (self.forward().data ** 2)) * out.grad
+        self.operand.grad += (1 - (self._forward() ** 2)) * out.grad
+
+    def _forward(self) -> float:
+        return (math.exp(2 * self.operand.data) - 1) / (
+            math.exp(2 * self.operand.data) + 1
+        )
+
+
+class Sigmoid(UnaryOp):
+    symbol: ClassVar[str] = "sigmoid"
+
+    @override
+    def forward(self) -> "Scalar":
+        return Scalar(self._forward(), op=self)
+
+    @override
+    def backward(self, out: "Scalar") -> None:
+        s = self._forward()
+        self.operand.grad += s * (1 - s)
+
+    def _forward(self) -> float:
+        return 1 / (1 + math.exp(-self.operand.data))
+
+
+class Relu(UnaryOp):
+    symbol: ClassVar[str] = "relu"
+
+    @override
+    def forward(self) -> "Scalar":
+        d = self.operand.data
+        return Scalar(d if d > 0 else 0.0, op=self)
+
+    @override
+    def backward(self, out: "Scalar") -> None:
+        if self.operand.data > 0:
+            self.operand.grad += out.grad
 
 
 class Scalar:
@@ -164,3 +195,12 @@ class Scalar:
         if not isinstance(other, Scalar):
             return NotImplemented
         return Pow(self, other).forward()
+
+    def tanh(self) -> "Scalar":
+        return Tanh(self).forward()
+
+    def sigmoid(self) -> "Scalar":
+        return Sigmoid(self).forward()
+
+    def relu(self) -> "Scalar":
+        return Relu(self).forward()
