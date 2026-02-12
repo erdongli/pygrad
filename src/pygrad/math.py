@@ -139,7 +139,7 @@ class Sigmoid(UnaryOp):
     @override
     def backward(self, out: "Scalar") -> None:
         s = sigmoid(self.operand.data)
-        self.operand.grad += s * (1 - s)
+        self.operand.grad += s * (1 - s) * out.grad
 
 
 class Relu(UnaryOp):
