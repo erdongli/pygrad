@@ -20,17 +20,17 @@ def test_op_enum_members_exist() -> None:
 
 
 def test_op_enum_strenum_auto_values_are_lowercase_names() -> None:
-    assert Op.ADD.value == "add"
-    assert Op.SUB.value == "sub"
-    assert Op.MUL.value == "mul"
-    assert Op.DIV.value == "div"
-    assert Op.POW.value == "pow"
+    assert Op.ADD.value == "+"
+    assert Op.SUB.value == "-"
+    assert Op.MUL.value == "*"
+    assert Op.DIV.value == "/"
+    assert Op.POW.value == "**"
 
 
 def test_scalar_defaults_op_to_none() -> None:
     actual = Scalar(1.0)
-    assert actual._op is None
-    assert actual._inputs == ()
+    assert actual.op is None
+    assert actual.inputs == ()
 
 
 def test_repr_is_data() -> None:
@@ -43,8 +43,8 @@ def test_add() -> None:
     rhs = Scalar(3.5)
     actual = lhs + rhs
     assert actual.data == 5.5
-    assert actual._op == Op.ADD
-    assert actual._inputs == (lhs, rhs)
+    assert actual.op == Op.ADD
+    assert actual.inputs == (lhs, rhs)
 
 
 def test_sub() -> None:
@@ -52,8 +52,8 @@ def test_sub() -> None:
     rhs = Scalar(4.25)
     actual = lhs - rhs
     assert actual.data == 5.75
-    assert actual._op == Op.SUB
-    assert actual._inputs == (lhs, rhs)
+    assert actual.op == Op.SUB
+    assert actual.inputs == (lhs, rhs)
 
 
 def test_mul() -> None:
@@ -61,8 +61,8 @@ def test_mul() -> None:
     rhs = Scalar(2.0)
     actual = lhs * rhs
     assert actual.data == 6.0
-    assert actual._op == Op.MUL
-    assert actual._inputs == (lhs, rhs)
+    assert actual.op == Op.MUL
+    assert actual.inputs == (lhs, rhs)
 
 
 def test_truediv() -> None:
@@ -70,8 +70,8 @@ def test_truediv() -> None:
     rhs = Scalar(3.0)
     actual = lhs / rhs
     assert actual.data == 3.0
-    assert actual._op == Op.DIV
-    assert actual._inputs == (lhs, rhs)
+    assert actual.op == Op.DIV
+    assert actual.inputs == (lhs, rhs)
 
 
 def test_pow() -> None:
@@ -79,8 +79,8 @@ def test_pow() -> None:
     rhs = Scalar(3.0)
     actual = lhs**rhs
     assert actual.data == 8.0
-    assert actual._op == Op.POW
-    assert actual._inputs == (lhs, rhs)
+    assert actual.op == Op.POW
+    assert actual.inputs == (lhs, rhs)
 
 
 @pytest.mark.parametrize(

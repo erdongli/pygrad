@@ -1,21 +1,23 @@
-from enum import StrEnum, auto
+from enum import StrEnum
 
 
 class Op(StrEnum):
-    ADD = auto()
-    SUB = auto()
-    MUL = auto()
-    DIV = auto()
-    POW = auto()
+    ADD = "+"
+    SUB = "-"
+    MUL = "*"
+    DIV = "/"
+    POW = "**"
 
 
 class Scalar:
+    __slots__ = ("data", "op", "inputs")
+
     def __init__(
         self, data: float, op: Op | None = None, inputs: tuple["Scalar", ...] = ()
     ):
         self.data = data
-        self._op = op
-        self._inputs = inputs
+        self.op = op
+        self.inputs = inputs
 
     def __repr__(self) -> str:
         return f"{self.data}"
