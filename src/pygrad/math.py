@@ -3,6 +3,10 @@ from abc import ABC, abstractmethod
 from typing import ClassVar, Final, override
 
 
+def sigmoid(x: float) -> float:
+    return 1 / (1 + math.exp(-x))
+
+
 class Op(ABC):
     symbol: ClassVar[str] = "?"
 
@@ -118,16 +122,11 @@ class Tanh(UnaryOp):
 
     @override
     def forward(self) -> "Scalar":
-        return Scalar(self._forward(), op=self)
+        return Scalar(math.tanh(self.operand.data), op=self)
 
     @override
     def backward(self, out: "Scalar") -> None:
-        self.operand.grad += (1 - (self._forward() ** 2)) * out.grad
-
-    def _forward(self) -> float:
-        return (math.exp(2 * self.operand.data) - 1) / (
-            math.exp(2 * self.operand.data) + 1
-        )
+        self.operand.grad += (1 - (math.tanh(self.operand.data) ** 2)) * out.grad
 
 
 class Sigmoid(UnaryOp):
@@ -135,15 +134,12 @@ class Sigmoid(UnaryOp):
 
     @override
     def forward(self) -> "Scalar":
-        return Scalar(self._forward(), op=self)
+        return Scalar(sigmoid(self.operand.data), op=self)
 
     @override
     def backward(self, out: "Scalar") -> None:
-        s = self._forward()
+        s = sigmoid(self.operand.data)
         self.operand.grad += s * (1 - s)
-
-    def _forward(self) -> float:
-        return 1 / (1 + math.exp(-self.operand.data))
 
 
 class Relu(UnaryOp):
