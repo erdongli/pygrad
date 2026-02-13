@@ -72,6 +72,20 @@ def test_unary_op_out_is_expected_scalar(
 
 
 @pytest.mark.parametrize(
+    ("operand_data", "expected_data"),
+    [(1000.0, 1.0), (-1000.0, 0.0)],
+    ids=["positive_saturation", "negative_saturation"],
+)
+def test_sigmoid_forward_is_numerically_stable_for_large_inputs(
+    operand_data: float, expected_data: float
+) -> None:
+    actual = Scalar(operand_data).sigmoid()
+
+    assert actual.data == pytest.approx(expected_data)
+    assert math.isfinite(actual.data)
+
+
+@pytest.mark.parametrize(
     ("binary_op", "left_data", "right_data", "op_cls", "expected_data"),
     [
         (operator.add, 2.0, 3.5, Add, 5.5),
@@ -235,6 +249,23 @@ def test_unary_op_backward_accumulates_expected_gradient(
     op.backward()
 
     assert operand.grad == pytest.approx(-0.5 + delta)
+
+
+@pytest.mark.parametrize(
+    "operand_data",
+    [1000.0, -1000.0],
+    ids=["positive_saturation", "negative_saturation"],
+)
+def test_sigmoid_backward_is_numerically_stable_for_large_inputs(
+    operand_data: float,
+) -> None:
+    operand = Scalar(operand_data)
+    out = operand.sigmoid()
+
+    out.backward()
+
+    assert operand.grad == pytest.approx(0.0)
+    assert math.isfinite(operand.grad)
 
 
 def test_pow_backward_raises_value_error_for_non_positive_base() -> None:

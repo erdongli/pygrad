@@ -3,6 +3,14 @@ from abc import ABC, abstractmethod
 from typing import Callable, ClassVar, override
 
 
+def _sigmoid(x: float) -> float:
+    if x >= 0.0:
+        z = math.exp(-x)
+        return 1.0 / (1.0 + z)
+    z = math.exp(x)
+    return z / (1.0 + z)
+
+
 class Op(ABC):
     symbol: ClassVar[str] = "?"
 
@@ -130,7 +138,7 @@ class Sigmoid(UnaryOp):
     symbol: ClassVar[str] = "sigmoid"
 
     def __init__(self, operand: "Scalar") -> None:
-        super().__init__(operand, lambda x: 1 / (1 + math.exp(-x)))
+        super().__init__(operand, _sigmoid)
 
     @override
     def backward(self) -> None:
