@@ -26,6 +26,22 @@ class Op(ABC):
         pass
 
 
+class NoOp(Op):
+    symbol: ClassVar[str] = "noop"
+
+    @override
+    def backward(self) -> None:
+        pass
+
+    @property
+    @override
+    def operands(self) -> tuple["Scalar", ...]:
+        return ()
+
+
+NO_OP = NoOp()
+
+
 class BinaryOp(Op):
     def __init__(
         self,
@@ -160,7 +176,7 @@ class Relu(UnaryOp):
 class Scalar:
     __slots__ = ("data", "op", "grad")
 
-    def __init__(self, data: float, op: Op | None = None) -> None:
+    def __init__(self, data: float, op: Op = NO_OP) -> None:
         self.data = data
         self.op = op
         self.grad = 0.0
@@ -218,14 +234,10 @@ class Scalar:
             visited.add(node)
             stack.append((node, True))
 
-            if not node.op:
-                continue
-
             for operand in reversed(node.op.operands):
                 if operand not in visited:
                     stack.append((operand, False))
 
         self.grad = 1.0
         for node in reversed(topo):
-            if node.op:
-                node.op.backward()
+            node.op.backward()

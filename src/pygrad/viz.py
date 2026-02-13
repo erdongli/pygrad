@@ -17,7 +17,7 @@ def render(root: Scalar, filename: str) -> None:
 
         dot.node(node_name, label=str(node))
 
-        if not node.op:
+        if not node.op.operands:
             continue
         op = node.op
 
