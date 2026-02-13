@@ -1,21 +1,15 @@
 import math
 from abc import ABC, abstractmethod
-from typing import ClassVar, Final, override
-
-
-def sigmoid(x: float) -> float:
-    return 1 / (1 + math.exp(-x))
+from typing import Callable, ClassVar, override
 
 
 class Op(ABC):
     symbol: ClassVar[str] = "?"
 
-    @abstractmethod
-    def forward(self) -> "Scalar":
-        pass
+    out: "Scalar"
 
     @abstractmethod
-    def backward(self, out: "Scalar") -> None:
+    def backward(self) -> None:
         pass
 
     @property
@@ -25,9 +19,15 @@ class Op(ABC):
 
 
 class BinaryOp(Op):
-    def __init__(self, left: "Scalar", right: "Scalar") -> None:
-        self.left: Final = left
-        self.right: Final = right
+    def __init__(
+        self,
+        left: "Scalar",
+        right: "Scalar",
+        forward_fn: Callable[[float, float], float],
+    ) -> None:
+        self.left = left
+        self.right = right
+        self.out = Scalar(forward_fn(left.data, right.data), op=self)
 
     @property
     @override
@@ -36,8 +36,9 @@ class BinaryOp(Op):
 
 
 class UnaryOp(Op):
-    def __init__(self, operand: "Scalar") -> None:
-        self.operand: Final = operand
+    def __init__(self, operand: "Scalar", forward_fn: Callable[[float], float]) -> None:
+        self.operand = operand
+        self.out = Scalar(forward_fn(operand.data), op=self)
 
     @property
     @override
@@ -48,112 +49,104 @@ class UnaryOp(Op):
 class Add(BinaryOp):
     symbol: ClassVar[str] = "+"
 
-    @override
-    def forward(self) -> "Scalar":
-        return Scalar(self.left.data + self.right.data, op=self)
+    def __init__(self, left: "Scalar", right: "Scalar") -> None:
+        super().__init__(left, right, lambda x, y: x + y)
 
     @override
-    def backward(self, out: "Scalar") -> None:
-        self.left.grad += 1.0 * out.grad
-        self.right.grad += 1.0 * out.grad
+    def backward(self) -> None:
+        self.left.grad += 1.0 * self.out.grad
+        self.right.grad += 1.0 * self.out.grad
 
 
 class Sub(BinaryOp):
     symbol: ClassVar[str] = "-"
 
-    @override
-    def forward(self) -> "Scalar":
-        return Scalar(self.left.data - self.right.data, op=self)
+    def __init__(self, left: "Scalar", right: "Scalar") -> None:
+        super().__init__(left, right, lambda x, y: x - y)
 
     @override
-    def backward(self, out: "Scalar") -> None:
-        self.left.grad += 1.0 * out.grad
-        self.right.grad -= 1.0 * out.grad
+    def backward(self) -> None:
+        self.left.grad += 1.0 * self.out.grad
+        self.right.grad -= 1.0 * self.out.grad
 
 
 class Mul(BinaryOp):
     symbol: ClassVar[str] = "*"
 
-    @override
-    def forward(self) -> "Scalar":
-        return Scalar(self.left.data * self.right.data, op=self)
+    def __init__(self, left: "Scalar", right: "Scalar") -> None:
+        super().__init__(left, right, lambda x, y: x * y)
 
     @override
-    def backward(self, out: "Scalar") -> None:
-        self.left.grad += self.right.data * out.grad
-        self.right.grad += self.left.data * out.grad
+    def backward(self) -> None:
+        self.left.grad += self.right.data * self.out.grad
+        self.right.grad += self.left.data * self.out.grad
 
 
 class Div(BinaryOp):
     symbol: ClassVar[str] = "/"
 
-    @override
-    def forward(self) -> "Scalar":
-        return Scalar(self.left.data / self.right.data, op=self)
+    def __init__(self, left: "Scalar", right: "Scalar") -> None:
+        super().__init__(left, right, lambda x, y: x / y)
 
     @override
-    def backward(self, out: "Scalar") -> None:
-        self.left.grad += (1.0 / self.right.data) * out.grad
-        self.right.grad += (-self.left.data / (self.right.data**2)) * out.grad
+    def backward(self) -> None:
+        self.left.grad += (1.0 / self.right.data) * self.out.grad
+        self.right.grad += (-self.left.data / (self.right.data**2)) * self.out.grad
 
 
 class Pow(BinaryOp):
     symbol: ClassVar[str] = "**"
 
-    @override
-    def forward(self) -> "Scalar":
-        return Scalar(self.left.data**self.right.data, op=self)
+    def __init__(self, left: "Scalar", right: "Scalar") -> None:
+        super().__init__(left, right, lambda x, y: x**y)
 
     @override
-    def backward(self, out: "Scalar") -> None:
+    def backward(self) -> None:
         if self.left.data <= 0.0:
             raise ValueError(
                 "Pow.backward requires a positive base for exponent gradients."
             )
 
         self.left.grad += (
-            self.right.data * (self.left.data ** (self.right.data - 1.0)) * out.grad
+            self.right.data
+            * (self.left.data ** (self.right.data - 1.0))
+            * self.out.grad
         )
-        self.right.grad += out.data * math.log(self.left.data) * out.grad
+        self.right.grad += self.out.data * math.log(self.left.data) * self.out.grad
 
 
 class Tanh(UnaryOp):
     symbol: ClassVar[str] = "tanh"
 
-    @override
-    def forward(self) -> "Scalar":
-        return Scalar(math.tanh(self.operand.data), op=self)
+    def __init__(self, operand: "Scalar") -> None:
+        super().__init__(operand, lambda x: math.tanh(x))
 
     @override
-    def backward(self, out: "Scalar") -> None:
-        self.operand.grad += (1 - (math.tanh(self.operand.data) ** 2)) * out.grad
+    def backward(self) -> None:
+        self.operand.grad += (1 - (self.out.data**2)) * self.out.grad
 
 
 class Sigmoid(UnaryOp):
     symbol: ClassVar[str] = "sigmoid"
 
-    @override
-    def forward(self) -> "Scalar":
-        return Scalar(sigmoid(self.operand.data), op=self)
+    def __init__(self, operand: "Scalar") -> None:
+        super().__init__(operand, lambda x: 1 / (1 + math.exp(-x)))
 
     @override
-    def backward(self, out: "Scalar") -> None:
-        s = sigmoid(self.operand.data)
-        self.operand.grad += s * (1 - s) * out.grad
+    def backward(self) -> None:
+        self.operand.grad += self.out.data * (1 - self.out.data) * self.out.grad
 
 
 class Relu(UnaryOp):
     symbol: ClassVar[str] = "relu"
 
-    @override
-    def forward(self) -> "Scalar":
-        d = self.operand.data
-        return Scalar(d if d > 0 else 0.0, op=self)
+    def __init__(self, operand: "Scalar") -> None:
+        super().__init__(operand, lambda x: x if x > 0 else 0.0)
 
     @override
-    def backward(self, out: "Scalar") -> None:
+    def backward(self) -> None:
         if self.operand.data > 0:
-            self.operand.grad += out.grad
+            self.operand.grad += self.out.grad
 
 
 class Scalar:
@@ -161,7 +154,7 @@ class Scalar:
 
     def __init__(self, data: float, op: Op | None = None) -> None:
         self.data = data
-        self.op: Final = op
+        self.op = op
         self.grad = 0.0
 
     def __repr__(self) -> str:
@@ -170,33 +163,33 @@ class Scalar:
     def __add__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Add(self, other).forward()
+        return Add(self, other).out
 
     def __sub__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Sub(self, other).forward()
+        return Sub(self, other).out
 
     def __mul__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Mul(self, other).forward()
+        return Mul(self, other).out
 
     def __truediv__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Div(self, other).forward()
+        return Div(self, other).out
 
     def __pow__(self, other: "Scalar") -> "Scalar":
         if not isinstance(other, Scalar):
             return NotImplemented
-        return Pow(self, other).forward()
+        return Pow(self, other).out
 
     def tanh(self) -> "Scalar":
-        return Tanh(self).forward()
+        return Tanh(self).out
 
     def sigmoid(self) -> "Scalar":
-        return Sigmoid(self).forward()
+        return Sigmoid(self).out
 
     def relu(self) -> "Scalar":
-        return Relu(self).forward()
+        return Relu(self).out

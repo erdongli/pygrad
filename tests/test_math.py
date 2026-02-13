@@ -17,7 +17,6 @@ from pygrad.math import (
     Sub,
     Tanh,
     UnaryOp,
-    sigmoid,
 )
 
 
@@ -32,8 +31,8 @@ from pygrad.math import (
     ],
     ids=["add", "sub", "mul", "div", "pow"],
 )
-def test_binary_op_forward_returns_expected_scalar(
-    op_cls: type[BinaryOp],
+def test_binary_op_out_is_expected_scalar(
+    op_cls: type[Add | Sub | Mul | Div | Pow],
     left_data: float,
     right_data: float,
     expected_data: float,
@@ -42,7 +41,7 @@ def test_binary_op_forward_returns_expected_scalar(
     right = Scalar(right_data)
     op = op_cls(left, right)
 
-    actual = op.forward()
+    actual = op.out
 
     assert isinstance(actual, Scalar)
     assert actual.data == pytest.approx(expected_data)
@@ -59,13 +58,13 @@ def test_binary_op_forward_returns_expected_scalar(
     ],
     ids=["tanh", "sigmoid", "relu_negative", "relu_positive"],
 )
-def test_unary_op_forward_returns_expected_scalar(
-    op_cls: type[UnaryOp], operand_data: float, expected_data: float
+def test_unary_op_out_is_expected_scalar(
+    op_cls: type[Tanh | Sigmoid | Relu], operand_data: float, expected_data: float
 ) -> None:
     operand = Scalar(operand_data)
     op = op_cls(operand)
 
-    actual = op.forward()
+    actual = op.out
 
     assert isinstance(actual, Scalar)
     assert actual.data == pytest.approx(expected_data)
@@ -171,19 +170,6 @@ def test_scalar_repr_returns_data_string() -> None:
 
 
 @pytest.mark.parametrize(
-    ("x", "expected"),
-    [
-        (-1.25, 0.22270013882530884),
-        (0.0, 0.5),
-        (2.0, 0.8807970779778823),
-    ],
-    ids=["negative", "zero", "positive"],
-)
-def test_sigmoid_returns_expected_value(x: float, expected: float) -> None:
-    assert sigmoid(x) == pytest.approx(expected)
-
-
-@pytest.mark.parametrize(
     ("op_cls", "left_data", "right_data", "out_grad", "left_delta", "right_delta"),
     [
         (Add, 2.0, 3.5, 2.5, 2.5, 2.5),
@@ -202,7 +188,7 @@ def test_sigmoid_returns_expected_value(x: float, expected: float) -> None:
     ids=["add", "sub", "mul", "div", "pow"],
 )
 def test_binary_op_backward_accumulates_expected_gradients(
-    op_cls: type[BinaryOp],
+    op_cls: type[Add | Sub | Mul | Div | Pow],
     left_data: float,
     right_data: float,
     out_grad: float,
@@ -212,13 +198,12 @@ def test_binary_op_backward_accumulates_expected_gradients(
     left = Scalar(left_data)
     right = Scalar(right_data)
     op = op_cls(left, right)
-    out = op.forward()
-
+    out = op.out
     left.grad = 1.25
     right.grad = -0.75
     out.grad = out_grad
 
-    op.backward(out)
+    op.backward()
 
     assert left.grad == pytest.approx(1.25 + left_delta)
     assert right.grad == pytest.approx(-0.75 + right_delta)
@@ -236,16 +221,18 @@ def test_binary_op_backward_accumulates_expected_gradients(
     ids=["tanh", "sigmoid", "relu_positive", "relu_negative", "relu_zero"],
 )
 def test_unary_op_backward_accumulates_expected_gradient(
-    op_cls: type[UnaryOp], operand_data: float, out_grad: float, delta: float
+    op_cls: type[Tanh | Sigmoid | Relu],
+    operand_data: float,
+    out_grad: float,
+    delta: float,
 ) -> None:
     operand = Scalar(operand_data)
     op = op_cls(operand)
-    out = op.forward()
-
+    out = op.out
     operand.grad = -0.5
     out.grad = out_grad
 
-    op.backward(out)
+    op.backward()
 
     assert operand.grad == pytest.approx(-0.5 + delta)
 
@@ -254,8 +241,8 @@ def test_pow_backward_raises_value_error_for_non_positive_base() -> None:
     left = Scalar(0.0)
     right = Scalar(2.0)
     op = Pow(left, right)
-    out = op.forward()
+    out = op.out
     out.grad = 1.0
 
     with pytest.raises(ValueError):
-        op.backward(out)
+        op.backward()
