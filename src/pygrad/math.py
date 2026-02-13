@@ -193,3 +193,31 @@ class Scalar:
 
     def relu(self) -> "Scalar":
         return Relu(self).out
+
+    def backward(self) -> None:
+        topo, visited, stack = [], set(), [(self, False)]
+
+        while stack:
+            node, expanded = stack.pop()
+            if expanded:
+                topo.append(node)
+                continue
+
+            if node in visited:
+                continue
+
+            node.grad = 0.0
+            visited.add(node)
+            stack.append((node, True))
+
+            if not node.op:
+                continue
+
+            for operand in reversed(node.op.operands):
+                if operand not in visited:
+                    stack.append((operand, False))
+
+        self.grad = 1.0
+        for node in reversed(topo):
+            if node.op:
+                node.op.backward()

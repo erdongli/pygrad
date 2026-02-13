@@ -246,3 +246,33 @@ def test_pow_backward_raises_value_error_for_non_positive_base() -> None:
 
     with pytest.raises(ValueError):
         op.backward()
+
+
+def test_scalar_backward_resets_existing_graph_gradients() -> None:
+    left = Scalar(2.0)
+    right = Scalar(3.0)
+    out = (left * right) + left
+    left.grad = 9.0
+    right.grad = -4.0
+    out.grad = 12.0
+
+    out.backward()
+
+    assert out.grad == pytest.approx(1.0)
+    assert left.grad == pytest.approx(4.0)
+    assert right.grad == pytest.approx(2.0)
+
+
+def test_scalar_backward_does_not_accumulate_across_calls() -> None:
+    left = Scalar(2.0)
+    right = Scalar(3.0)
+    out = left * right
+
+    out.backward()
+    first_left_grad = left.grad
+    first_right_grad = right.grad
+
+    out.backward()
+
+    assert left.grad == pytest.approx(first_left_grad)
+    assert right.grad == pytest.approx(first_right_grad)
