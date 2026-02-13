@@ -141,25 +141,129 @@ def test_scalar_unary_methods_return_expected_scalar(
 
 
 @pytest.mark.parametrize(
-    ("dunder_method", "other"),
+    ("dunder_method", "right"),
     [
-        (Scalar.__add__, 1),
-        (Scalar.__sub__, 1),
-        (Scalar.__mul__, 1),
-        (Scalar.__truediv__, 1),
-        (Scalar.__pow__, 1),
+        (Scalar.__add__, "bad"),
+        (Scalar.__radd__, "bad"),
+        (Scalar.__sub__, "bad"),
+        (Scalar.__rsub__, "bad"),
+        (Scalar.__mul__, "bad"),
+        (Scalar.__rmul__, "bad"),
+        (Scalar.__truediv__, "bad"),
+        (Scalar.__rtruediv__, "bad"),
+        (Scalar.__pow__, "bad"),
+        (Scalar.__rpow__, "bad"),
     ],
-    ids=["add", "sub", "mul", "truediv", "pow"],
+    ids=[
+        "add",
+        "radd",
+        "sub",
+        "rsub",
+        "mul",
+        "rmul",
+        "truediv",
+        "rtruediv",
+        "pow",
+        "rpow",
+    ],
 )
-def test_scalar_binary_dunders_return_notimplemented_for_non_scalar(
+def test_scalar_binary_dunders_return_notimplemented_for_unsupported_types(
     dunder_method: Callable[[Scalar, Any], object],
-    other: Any,
+    right: Any,
 ) -> None:
-    value = Scalar(2.0)
+    left = Scalar(2.0)
 
-    actual = dunder_method(value, other)
+    actual = dunder_method(left, right)
 
     assert actual is NotImplemented
+
+
+@pytest.mark.parametrize(
+    ("binary_op", "right", "expected_data", "op_cls"),
+    [
+        (operator.add, 1, 3.0, Add),
+        (operator.add, 1.5, 3.5, Add),
+        (operator.sub, 1, 1.0, Sub),
+        (operator.sub, 1.5, 0.5, Sub),
+        (operator.mul, 3, 6.0, Mul),
+        (operator.mul, 1.5, 3.0, Mul),
+        (operator.truediv, 2, 1.0, Div),
+        (operator.truediv, 0.5, 4.0, Div),
+        (operator.pow, 3, 8.0, Pow),
+        (operator.pow, 0.5, math.sqrt(2.0), Pow),
+    ],
+    ids=[
+        "add_int_right",
+        "add_float_right",
+        "sub_int_right",
+        "sub_float_right",
+        "mul_int_right",
+        "mul_float_right",
+        "truediv_int_right",
+        "truediv_float_right",
+        "pow_int_right",
+        "pow_float_right",
+    ],
+)
+def test_scalar_binary_operators_accept_int_and_float_on_right(
+    binary_op: Callable[[Any, Any], Any],
+    right: int | float,
+    expected_data: float,
+    op_cls: type[BinaryOp],
+) -> None:
+    left = Scalar(2.0)
+
+    actual = binary_op(left, right)
+
+    assert isinstance(actual, Scalar)
+    assert actual.data == pytest.approx(expected_data)
+    assert isinstance(actual.op, op_cls)
+    assert actual.op.left is left
+    assert actual.op.right.data == pytest.approx(float(right))
+
+
+@pytest.mark.parametrize(
+    ("binary_op", "left", "expected_data", "op_cls"),
+    [
+        (operator.add, 1, 3.0, Add),
+        (operator.add, 1.5, 3.5, Add),
+        (operator.sub, 1, -1.0, Sub),
+        (operator.sub, 1.5, -0.5, Sub),
+        (operator.mul, 3, 6.0, Mul),
+        (operator.mul, 1.5, 3.0, Mul),
+        (operator.truediv, 1, 0.5, Div),
+        (operator.truediv, 1.5, 0.75, Div),
+        (operator.pow, 3, 9.0, Pow),
+        (operator.pow, 1.5, 2.25, Pow),
+    ],
+    ids=[
+        "add_int_left",
+        "add_float_left",
+        "sub_int_left",
+        "sub_float_left",
+        "mul_int_left",
+        "mul_float_left",
+        "truediv_int_left",
+        "truediv_float_left",
+        "pow_int_left",
+        "pow_float_left",
+    ],
+)
+def test_scalar_binary_operators_accept_int_and_float_on_left(
+    binary_op: Callable[[Any, Any], Any],
+    left: int | float,
+    expected_data: float,
+    op_cls: type[BinaryOp],
+) -> None:
+    right = Scalar(2.0)
+
+    actual = binary_op(left, right)
+
+    assert isinstance(actual, Scalar)
+    assert actual.data == pytest.approx(expected_data)
+    assert isinstance(actual.op, op_cls)
+    assert actual.op.left.data == pytest.approx(float(left))
+    assert actual.op.right is right
 
 
 @pytest.mark.parametrize(
@@ -167,11 +271,14 @@ def test_scalar_binary_dunders_return_notimplemented_for_non_scalar(
     [operator.add, operator.sub, operator.mul, operator.truediv, operator.pow],
     ids=["add", "sub", "mul", "truediv", "pow"],
 )
-def test_scalar_binary_operators_raise_type_error_for_non_scalar(
-    binary_op: Callable[[Scalar, Any], Any],
+def test_scalar_binary_operators_raise_type_error_for_unsupported_types(
+    binary_op: Callable[[Any, Any], Any],
 ) -> None:
     with pytest.raises(TypeError):
-        binary_op(Scalar(2.0), 1)
+        binary_op(Scalar(2.0), "bad")
+
+    with pytest.raises(TypeError):
+        binary_op("bad", Scalar(2.0))
 
 
 def test_scalar_truediv_by_zero_raises_zero_division_error() -> None:

@@ -184,30 +184,73 @@ class Scalar:
     def __repr__(self) -> str:
         return f"{self.data}"
 
-    def __add__(self, other: "Scalar") -> "Scalar":
-        if not isinstance(other, Scalar):
-            return NotImplemented
-        return Add(self, other).out
+    @staticmethod
+    def _coerce_binary_operand(other: object) -> "Scalar | None":
+        if isinstance(other, Scalar):
+            return other
+        if isinstance(other, (int, float)) and not isinstance(other, bool):
+            return Scalar(float(other))
+        return None
 
-    def __sub__(self, other: "Scalar") -> "Scalar":
-        if not isinstance(other, Scalar):
+    def __add__(self, other: object) -> "Scalar":
+        right = self._coerce_binary_operand(other)
+        if right is None:
             return NotImplemented
-        return Sub(self, other).out
+        return Add(self, right).out
 
-    def __mul__(self, other: "Scalar") -> "Scalar":
-        if not isinstance(other, Scalar):
+    def __radd__(self, other: object) -> "Scalar":
+        left = self._coerce_binary_operand(other)
+        if left is None:
             return NotImplemented
-        return Mul(self, other).out
+        return Add(left, self).out
 
-    def __truediv__(self, other: "Scalar") -> "Scalar":
-        if not isinstance(other, Scalar):
+    def __sub__(self, other: object) -> "Scalar":
+        right = self._coerce_binary_operand(other)
+        if right is None:
             return NotImplemented
-        return Div(self, other).out
+        return Sub(self, right).out
 
-    def __pow__(self, other: "Scalar") -> "Scalar":
-        if not isinstance(other, Scalar):
+    def __rsub__(self, other: object) -> "Scalar":
+        left = self._coerce_binary_operand(other)
+        if left is None:
             return NotImplemented
-        return Pow(self, other).out
+        return Sub(left, self).out
+
+    def __mul__(self, other: object) -> "Scalar":
+        right = self._coerce_binary_operand(other)
+        if right is None:
+            return NotImplemented
+        return Mul(self, right).out
+
+    def __rmul__(self, other: object) -> "Scalar":
+        left = self._coerce_binary_operand(other)
+        if left is None:
+            return NotImplemented
+        return Mul(left, self).out
+
+    def __truediv__(self, other: object) -> "Scalar":
+        right = self._coerce_binary_operand(other)
+        if right is None:
+            return NotImplemented
+        return Div(self, right).out
+
+    def __rtruediv__(self, other: object) -> "Scalar":
+        left = self._coerce_binary_operand(other)
+        if left is None:
+            return NotImplemented
+        return Div(left, self).out
+
+    def __pow__(self, other: object) -> "Scalar":
+        right = self._coerce_binary_operand(other)
+        if right is None:
+            return NotImplemented
+        return Pow(self, right).out
+
+    def __rpow__(self, other: object) -> "Scalar":
+        left = self._coerce_binary_operand(other)
+        if left is None:
+            return NotImplemented
+        return Pow(left, self).out
 
     def tanh(self) -> "Scalar":
         return Tanh(self).out
