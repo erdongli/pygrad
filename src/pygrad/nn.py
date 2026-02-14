@@ -5,15 +5,15 @@ from pygrad.math import Scalar
 
 class Neuron:
     def __init__(self, n: int) -> None:
-        self.w = [Scalar(random.uniform(-1, 1)) for _ in range(n)]
-        self.b = Scalar(random.uniform(-1, 1))
+        self.weights = [Scalar(random.uniform(-1, 1)) for _ in range(n)]
+        self.bias = Scalar(random.uniform(-1, 1))
 
     def __call__(self, x: list[Scalar]) -> Scalar:
-        if len(x) != len(self.w):
+        if len(x) != len(self.weights):
             raise ValueError(
-                f"input shape mismatch: expected {len(self.w)}, got {len(x)}"
+                f"input shape mismatch: expected {len(self.weights)}, got {len(x)}"
             )
-        z = sum((wi * xi for wi, xi in zip(self.w, x)), self.b)
+        z = sum((wi * xi for wi, xi in zip(self.weights, x)), self.bias)
         return z.tanh()
 
 
