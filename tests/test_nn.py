@@ -74,6 +74,60 @@ def test_mlp_init_expected_layer_shapes() -> None:
     assert all(len(n.weights) == 3 for n in actual.layers[1].neurons)
 
 
+def test_neuron_parameters_returns_weights_then_bias() -> None:
+    neuron = Neuron(2)
+    w0 = Scalar(0.1)
+    w1 = Scalar(-0.2)
+    b = Scalar(0.3)
+    neuron.weights = [w0, w1]
+    neuron.bias = b
+
+    actual = neuron.parameters()
+
+    assert actual == [w0, w1, b]
+
+
+def test_layer_parameters_returns_flattened_neuron_parameters() -> None:
+    layer = Layer(2, 2)
+    w00 = Scalar(0.1)
+    w01 = Scalar(0.2)
+    b0 = Scalar(0.3)
+    w10 = Scalar(0.4)
+    w11 = Scalar(0.5)
+    b1 = Scalar(0.6)
+    layer.neurons[0].weights = [w00, w01]
+    layer.neurons[0].bias = b0
+    layer.neurons[1].weights = [w10, w11]
+    layer.neurons[1].bias = b1
+
+    actual = layer.parameters()
+
+    assert actual == [w00, w01, b0, w10, w11, b1]
+
+
+def test_mlp_parameters_returns_flattened_layer_parameters() -> None:
+    mlp = MLP([2, 2, 1])
+    w000 = Scalar(0.1)
+    w001 = Scalar(0.2)
+    b00 = Scalar(0.3)
+    w010 = Scalar(0.4)
+    w011 = Scalar(0.5)
+    b01 = Scalar(0.6)
+    w100 = Scalar(0.7)
+    w101 = Scalar(0.8)
+    b10 = Scalar(0.9)
+    mlp.layers[0].neurons[0].weights = [w000, w001]
+    mlp.layers[0].neurons[0].bias = b00
+    mlp.layers[0].neurons[1].weights = [w010, w011]
+    mlp.layers[0].neurons[1].bias = b01
+    mlp.layers[1].neurons[0].weights = [w100, w101]
+    mlp.layers[1].neurons[0].bias = b10
+
+    actual = mlp.parameters()
+
+    assert actual == [w000, w001, b00, w010, w011, b01, w100, w101, b10]
+
+
 def test_mlp_backward_propogates_expected_input_gradients() -> None:
     mlp = MLP([2, 2, 1])
     mlp.layers[0].neurons[0].weights = [Scalar(1.0), Scalar(0.0)]
