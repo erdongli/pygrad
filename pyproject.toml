@@ -3,10 +3,16 @@ name = "pygrad"
 version = "0.1.0"
 description = "A tiny educational reverse-mode autodiff engine in pure Python."
 readme = "README.md"
+license = { file = "LICENSE" }
 authors = [
     { name = "Erdong Li", email = "1317183+erdongli@users.noreply.github.com" }
 ]
 requires-python = ">=3.14"
+classifiers = [
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
 dependencies = [
     "graphviz>=0.21",
 ]
