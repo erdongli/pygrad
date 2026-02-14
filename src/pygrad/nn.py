@@ -9,6 +9,10 @@ class Neuron:
         self.b = Scalar(random.uniform(-1, 1))
 
     def __call__(self, x: list[Scalar]) -> Scalar:
+        if len(x) != len(self.w):
+            raise ValueError(
+                f"input shape mismatch: expected {len(self.w)}, got {len(x)}"
+            )
         z = sum((wi * xi for wi, xi in zip(self.w, x)), self.b)
         return z.tanh()
 

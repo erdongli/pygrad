@@ -38,6 +38,16 @@ def test_neuron_call_returns_tanh_of_affine_combination() -> None:
     assert actual.data == pytest.approx(expect)
 
 
+def test_neuron_call_raises_for_input_shape_mismatch() -> None:
+    neuron = Neuron(2)
+
+    with pytest.raises(
+        ValueError,
+        match=r"^input shape mismatch: expected 2, got 1$",
+    ):
+        neuron([Scalar(2.0)])
+
+
 def test_layer_call_applies_each_neuron_to_input() -> None:
     layer = Layer(2, 3)
     layer.neurons[0].w = [Scalar(1.0), Scalar(0.0)]
